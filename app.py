@@ -103,9 +103,21 @@ def compute_trend_and_predict(times_numeric, values, n_predict=5):
     if len(values) < 2 or len(times_numeric) < 2:
         return {"trend": "insufficient_data", "predictions": []}
 
-    # Ensure lists are same length
-    x = [float(t) for t in times_numeric]
-    y = [float(v) for v in values]
+    # Filter out None values to avoid float() conversion errors
+    filtered_pairs = [(t, v) for t, v in zip(times_numeric, values) if t is not None and v is not None]
+    if len(filtered_pairs) < 2:
+        return {"trend": "insufficient_data", "predictions": []}
+    
+    times_numeric = [t for t, v in filtered_pairs]
+    values = [v for t, v in filtered_pairs]
+    
+    # Ensure lists are same length and all values are numeric
+    try:
+        x = [float(t) for t in times_numeric]
+        y = [float(v) for v in values]
+    except (TypeError, ValueError) as e:
+        print(f"[error] compute_trend_and_predict conversion error: {e}")
+        return {"trend": "error", "predictions": []}
 
     n = len(x)
     mean_x = sum(x) / n
@@ -339,7 +351,13 @@ def upload():
             if len(arr) == 0:
                 continue
             summary[m] = {'mean': float(sum(arr) / len(arr)), 'max': float(max(arr)), 'min': float(min(arr)), 'count': int(len(arr))}
-            tp = compute_trend_and_predict([t for t in times_numeric], [v if not math.isnan(v) else 0.0 for v in vals], n_predict=5)
+            # Filter out None timestamps to avoid float() conversion errors
+            valid_times = [times_numeric[i] for i in range(len(times_numeric)) if times_numeric[i] is not None and not math.isnan(vals[i])]
+            valid_vals = [vals[i] if not math.isnan(vals[i]) else 0.0 for i in range(len(vals)) if times_numeric[i] is not None and not math.isnan(vals[i])]
+            if len(valid_times) >= 2 and len(valid_vals) >= 2:
+                tp = compute_trend_and_predict(valid_times, valid_vals, n_predict=5)
+            else:
+                tp = {"trend": "insufficient_data", "predictions": []}
             predictions[m] = tp['predictions']
             trends[m] = {'trend': tp['trend'], 'slope': tp.get('slope', 0.0)}
 
