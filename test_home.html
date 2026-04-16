@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Smart City Analysis</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  </head>
+  <body>
+    <div class="app">
+      <header class="glass card">
+        <h1>Smart City Analysis</h1>
+        <p>Upload CSV, analyze trends, and predict next values.</p>
+      </header>
+
+      <main>
+        <section class="controls glass card">
+          <input id="fileInput" type="file" accept=".csv" />
+          <button id="analyzeBtn">Analyze Data</button>
+          <label class="compact-toggle"><input id="compactToggle" type="checkbox"> Compact View</label>
+          <div id="error" class="error"></div>
+        </section>
+
+        <section id="preview" class="glass card">
+          <h3>Preview</h3>
+          <div id="tableWrap"></div>
+        </section>
+
+        <section class="charts grid">
+          <div class="glass card chart-card metric-charts">
+            <h4>Trends</h4>
+            <div class="metric-controls">
+              <label><input id="smoothingToggle" type="checkbox"> Smooth (moving avg)</label>
+              <label>Window: <select id="smoothingWindow"><option>3</option><option>5</option><option selected>7</option><option>15</option></select></label>
+            </div>
+            <div class="metrics-grid">
+              <div class="metric-box">
+                <h5>Traffic</h5>
+                <canvas id="lineTraffic" height="140"></canvas>
+              </div>
+              <div class="metric-box">
+                <h5>Pollution (AQI)</h5>
+                <canvas id="lineAQI" height="140"></canvas>
+              </div>
+              <div class="metric-box">
+                <h5>Energy</h5>
+                <canvas id="lineEnergy" height="140"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="glass card chart-card">
+            <h4>Comparison (Bar)</h4>
+            <canvas id="barChart"></canvas>
+          </div>
+          <div class="glass card chart-card">
+            <h4>Predictions</h4>
+            <div id="predictions"></div>
+          </div>
+        </section>
+
+        <section id="report" class="glass card">
+          <div class="report-header">
+            <h3>Analysis Report</h3>
+            <div class="report-actions">
+              <button id="exportBtn">Export Charts</button>
+              <button id="printBtn">Print Report</button>
+            </div>
+          </div>
+
+          <div id="summaryGrid" class="summary-grid"></div>
+          <div id="reportCharts" class="report-charts">
+            <div class="report-chart">
+              <h4>Trend</h4>
+              <canvas id="reportLine" height="160"></canvas>
+            </div>
+            <div class="report-chart">
+              <h4>Comparison</h4>
+              <canvas id="reportBar" height="160"></canvas>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <div>Analyzing...</div>
+      </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

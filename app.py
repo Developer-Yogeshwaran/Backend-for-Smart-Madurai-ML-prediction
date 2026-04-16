@@ -38,12 +38,11 @@ if not hasattr(pkgutil, 'get_loader'):
             return None
     pkgutil.get_loader = _get_loader
 
-# Handle both local and Vercel deployments
-base_dir = os.path.dirname(os.path.abspath(__file__))
-template_folder = os.path.join(base_dir, 'public', 'templates') if os.path.exists(os.path.join(base_dir, 'public', 'templates')) else os.path.join(base_dir, 'templates')
-static_folder = os.path.join(base_dir, 'public', 'static') if os.path.exists(os.path.join(base_dir, 'public', 'static')) else os.path.join(base_dir, 'static')
+# Simple path resolution for both local and Vercel
+template_dir = 'templates'
+static_dir = 'static'
 
-app = Flask(__name__, template_folder=template_folder, static_folder=static_folder, static_url_path='/static')
+app = Flask(__name__, template_folder=template_dir, static_folder=static_dir, static_url_path='/static')
 # Configure CORS explicitly to allow preflight and common headers
 CORS(app, resources={r"/*": {"origins": "*"}}, allow_headers='*', methods=['GET', 'POST', 'OPTIONS'])
 
@@ -160,7 +159,7 @@ def index():
 def serve_static(path):
     # Serve static files and spa routes
     if path.startswith('static/'):
-        return send_from_directory(static_folder, path.replace('static/', ''))
+        return send_from_directory(static_dir, path.replace('static/', ''))
     # For any other route (SPA), serve index.html
     return render_template('index.html')
 
@@ -172,186 +171,187 @@ def upload():
         return jsonify({"status": "ok"}), 200
     if request.method == 'GET':
         return jsonify({"message": "POST a CSV file to this endpoint as form-data under key 'file'"}), 200
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    file = request.files['file']
-    print(f"[upload] received file: {file.filename}")
+    
     try:
-        size = file.content_length if hasattr(file, 'content_length') else None
-        print(f"[upload] file size: {size}")
-    except Exception:
-        pass
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    if not file.filename.lower().endswith('.csv'):
-        return jsonify({"error": "Invalid file type; CSV required"}), 400
+        if 'file' not in request.files:
+            return jsonify({"error": "No file part"}), 400
+        file = request.files['file']
+        print(f"[upload] received file: {file.filename}")
+        
+        if file.filename == '':
+            return jsonify({"error": "No selected file"}), 400
+        if not file.filename.lower().endswith('.csv'):
+            return jsonify({"error": "Invalid file type; CSV required"}), 400
 
-    data = file.read()
+        data = file.read()
 
-    if pd is not None:
+        if pd is not None:
+            try:
+                df = pd.read_csv(io.BytesIO(data))
+                
+                if df.empty:
+                    return jsonify({"error": "CSV is empty"}), 400
+
+                df.columns = [str(c).strip() for c in df.columns]
+
+                timestamp_col = None
+                for c in df.columns:
+                    if 'time' in c.lower() or 'date' in c.lower():
+                        timestamp_col = c
+                        break
+
+                if timestamp_col:
+                    df[timestamp_col] = pd.to_datetime(df[timestamp_col], errors='coerce')
+                    df = df.sort_values(timestamp_col).reset_index(drop=True)
+                else:
+                    try:
+                        df['timestamp'] = pd.date_range(start=pd.Timestamp.now(), periods=len(df), freq='min')
+                    except Exception:
+                        start = pd.Timestamp.now().floor('min') if hasattr(pd.Timestamp.now(), 'floor') else pd.Timestamp.now()
+                        df['timestamp'] = [start + pd.Timedelta(minutes=i) for i in range(len(df))]
+                    timestamp_col = 'timestamp'
+
+                df = df.ffill().bfill()
+
+                location_col = None
+                for c in df.columns:
+                    if 'loc' in c.lower() or 'city' in c.lower() or 'lat' in c.lower() or 'lon' in c.lower():
+                        location_col = c
+                        break
+
+                exclude = [timestamp_col]
+                if location_col:
+                    exclude.append(location_col)
+                metrics = detect_numeric_metrics(df, exclude)
+
+                summary = {}
+                predictions = {}
+                trends = {}
+
+                times_numeric = (df[timestamp_col].astype('int64') // 10 ** 9).astype(float)
+
+                for m in metrics:
+                    series = df[m].astype(float).ffill().bfill()
+                    summary[m] = {
+                        'mean': float(series.mean()),
+                        'max': float(series.max()),
+                        'min': float(series.min()),
+                        'count': int(series.count())
+                    }
+                    tp = compute_trend_and_predict(times_numeric.tolist(), series.tolist(), n_predict=5)
+                    predictions[m] = tp['predictions']
+                    trends[m] = {'trend': tp['trend'], 'slope': tp.get('slope', 0.0)}
+
+                processed = df.head(100).copy()
+                processed[timestamp_col] = processed[timestamp_col].dt.strftime('%Y-%m-%dT%H:%M:%S')
+
+                response = {
+                    'summary': summary,
+                    'predictions': predictions,
+                    'trends': trends,
+                    'processed_data': processed.to_dict(orient='records'),
+                    'metrics': metrics,
+                    'timestamp_col': timestamp_col,
+                    'location_col': location_col
+                }
+                return jsonify(response)
+            except Exception as pandas_err:
+                print(f"[error] pandas error: {pandas_err}")
+                import traceback
+                traceback.print_exc()
+                # Fall through to CSV parsing fallback
+
+        # Fallback CSV parsing without pandas
         try:
-            df = pd.read_csv(io.BytesIO(data))
-        except Exception as e:
-            return jsonify({"error": f"Failed to read CSV with pandas: {e}"}), 400
+            text = data.decode('utf-8')
+        except Exception:
+            try:
+                text = data.decode('latin-1')
+            except Exception as e:
+                return jsonify({"error": f"Failed to decode CSV: {e}"}), 400
 
-        if df.empty:
+        reader = csv.DictReader(io.StringIO(text))
+        rows = [r for r in reader]
+        if len(rows) == 0:
             return jsonify({"error": "CSV is empty"}), 400
 
-        df.columns = [str(c).strip() for c in df.columns]
+        # Normalize keys
+        for r in rows:
+            for k in list(r.keys()):
+                if k is None:
+                    continue
+                v = k.strip()
+                if v != k:
+                    r[v] = r.pop(k)
 
+        # Detect timestamp
         timestamp_col = None
-        for c in df.columns:
-            if 'time' in c.lower() or 'date' in c.lower():
-                timestamp_col = c
+        for k in rows[0].keys():
+            if 'time' in k.lower() or 'date' in k.lower():
+                timestamp_col = k
                 break
-
-        if timestamp_col:
-            df[timestamp_col] = pd.to_datetime(df[timestamp_col], errors='coerce')
-            df = df.sort_values(timestamp_col).reset_index(drop=True)
-        else:
-            # 'T' (minute) frequency alias may be unavailable in some pandas versions.
-            # Prefer the explicit 'min' alias and fall back to a safe Python-generated range.
-            try:
-                df['timestamp'] = pd.date_range(start=pd.Timestamp.now(), periods=len(df), freq='min')
-            except Exception:
-                # Fallback: build timestamps using Timedelta minutes
-                start = pd.Timestamp.now().floor('min') if hasattr(pd.Timestamp.now(), 'floor') else pd.Timestamp.now()
-                df['timestamp'] = [start + pd.Timedelta(minutes=i) for i in range(len(df))]
+        if not timestamp_col:
+            base = datetime.now()
+            for i, r in enumerate(rows):
+                r['timestamp'] = (base.replace(microsecond=0) + timedelta(minutes=i)).isoformat()
             timestamp_col = 'timestamp'
 
-        # Use explicit forward/back fill methods to avoid pandas API mismatch
-        df = df.ffill().bfill()
+        # parse timestamps to numeric seconds
+        times_numeric = []
+        for r in rows:
+            try:
+                dt = datetime.fromisoformat(r.get(timestamp_col))
+            except Exception:
+                try:
+                    dt = datetime.strptime(r.get(timestamp_col), '%Y-%m-%d %H:%M:%S')
+                except Exception:
+                    dt = None
+            if dt is not None:
+                times_numeric.append(dt.timestamp())
+            else:
+                times_numeric.append(None)
 
-        location_col = None
-        for c in df.columns:
-            if 'loc' in c.lower() or 'city' in c.lower() or 'lat' in c.lower() or 'lon' in c.lower():
-                location_col = c
-                break
+        # Fill missing times by linear interpolation-ish
+        for i, t in enumerate(times_numeric):
+            if t is None:
+                left = next((times_numeric[j] for j in range(i-1, -1, -1) if times_numeric[j] is not None), None)
+                right = next((times_numeric[j] for j in range(i+1, len(times_numeric)) if times_numeric[j] is not None), None)
+                times_numeric[i] = left if right is None else (left if left is not None else right)
 
+        # detect numeric metrics
         exclude = [timestamp_col]
-        if location_col:
-            exclude.append(location_col)
-        metrics = detect_numeric_metrics(df, exclude)
+        metrics = detect_numeric_metrics(rows, exclude)
 
         summary = {}
         predictions = {}
         trends = {}
 
-        times_numeric = (df[timestamp_col].astype('int64') // 10 ** 9).astype(float)
-
         for m in metrics:
-            series = df[m].astype(float).ffill().bfill()
-            summary[m] = {
-                'mean': float(series.mean()),
-                'max': float(series.max()),
-                'min': float(series.min()),
-                'count': int(series.count())
-            }
-            tp = compute_trend_and_predict(times_numeric.tolist(), series.tolist(), n_predict=5)
+            vals = []
+            for r in rows:
+                v = r.get(m)
+                try:
+                    fv = float(v) if v not in (None, '') else math.nan
+                except Exception:
+                    fv = math.nan
+                vals.append(fv)
+            arr = [v for v in vals if not math.isnan(v)]
+            if len(arr) == 0:
+                continue
+            summary[m] = {'mean': float(sum(arr) / len(arr)), 'max': float(max(arr)), 'min': float(min(arr)), 'count': int(len(arr))}
+            tp = compute_trend_and_predict([t for t in times_numeric], [v if not math.isnan(v) else 0.0 for v in vals], n_predict=5)
             predictions[m] = tp['predictions']
             trends[m] = {'trend': tp['trend'], 'slope': tp.get('slope', 0.0)}
 
-        processed = df.head(100).copy()
-        processed[timestamp_col] = processed[timestamp_col].dt.strftime('%Y-%m-%dT%H:%M:%S')
-
-        response = {
-            'summary': summary,
-            'predictions': predictions,
-            'trends': trends,
-            'processed_data': processed.to_dict(orient='records'),
-            'metrics': metrics,
-            'timestamp_col': timestamp_col,
-            'location_col': location_col
-        }
+        processed = rows[:100]
+        response = {'summary': summary, 'predictions': predictions, 'trends': trends, 'processed_data': processed, 'metrics': metrics, 'timestamp_col': timestamp_col, 'location_col': None}
         return jsonify(response)
-
-    # Fallback CSV parsing without pandas
-    try:
-        text = data.decode('utf-8')
-    except Exception:
-        try:
-            text = data.decode('latin-1')
-        except Exception as e:
-            return jsonify({"error": f"Failed to decode CSV: {e}"}), 400
-
-    reader = csv.DictReader(io.StringIO(text))
-    rows = [r for r in reader]
-    if len(rows) == 0:
-        return jsonify({"error": "CSV is empty"}), 400
-
-    # Normalize keys
-    for r in rows:
-        for k in list(r.keys()):
-            if k is None:
-                continue
-            v = k.strip()
-            if v != k:
-                r[v] = r.pop(k)
-
-    # Detect timestamp
-    timestamp_col = None
-    for k in rows[0].keys():
-        if 'time' in k.lower() or 'date' in k.lower():
-            timestamp_col = k
-            break
-    if not timestamp_col:
-        # generate timestamps
-        base = datetime.now()
-        for i, r in enumerate(rows):
-            r['timestamp'] = (base.replace(microsecond=0) + timedelta(minutes=i)).isoformat()
-        timestamp_col = 'timestamp'
-
-    # parse timestamps to numeric seconds
-    times_numeric = []
-    for r in rows:
-        try:
-            dt = datetime.fromisoformat(r.get(timestamp_col))
-        except Exception:
-            try:
-                dt = datetime.strptime(r.get(timestamp_col), '%Y-%m-%d %H:%M:%S')
-            except Exception:
-                dt = None
-        if dt is not None:
-            times_numeric.append(dt.timestamp())
-        else:
-            times_numeric.append(None)
-
-    # Fill missing times by linear interpolation-ish
-    for i, t in enumerate(times_numeric):
-        if t is None:
-            # find nearest known
-            left = next((times_numeric[j] for j in range(i-1, -1, -1) if times_numeric[j] is not None), None)
-            right = next((times_numeric[j] for j in range(i+1, len(times_numeric)) if times_numeric[j] is not None), None)
-            times_numeric[i] = left if right is None else (left if left is not None else right)
-
-    # detect numeric metrics
-    exclude = [timestamp_col]
-    metrics = detect_numeric_metrics(rows, exclude)
-
-    summary = {}
-    predictions = {}
-    trends = {}
-
-    for m in metrics:
-        vals = []
-        for r in rows:
-            v = r.get(m)
-            try:
-                fv = float(v) if v not in (None, '') else math.nan
-            except Exception:
-                fv = math.nan
-            vals.append(fv)
-        arr = [v for v in vals if not math.isnan(v)]
-        if len(arr) == 0:
-            continue
-        summary[m] = {'mean': float(sum(arr) / len(arr)), 'max': float(max(arr)), 'min': float(min(arr)), 'count': int(len(arr))}
-        tp = compute_trend_and_predict([t for t in times_numeric], [v if not math.isnan(v) else 0.0 for v in vals], n_predict=5)
-        predictions[m] = tp['predictions']
-        trends[m] = {'trend': tp['trend'], 'slope': tp.get('slope', 0.0)}
-
-    processed = rows[:100]
-    response = {'summary': summary, 'predictions': predictions, 'trends': trends, 'processed_data': processed, 'metrics': metrics, 'timestamp_col': timestamp_col, 'location_col': None}
-    return jsonify(response)
+    
+    except Exception as e:
+        print(f"[error] upload exception: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Internal server error: {str(e)}"}), 500
 
 
 if __name__ == '__main__':

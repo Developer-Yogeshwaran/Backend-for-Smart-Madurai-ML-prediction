@@ -1,0 +1,104 @@
+{
+  "location_col": null,
+  "metrics": [
+    "traffic",
+    "aqi",
+    "energy"
+  ],
+  "predictions": {
+    "aqi": [
+      74.86666666716337,
+      77.35238095186651,
+      79.83809523843229,
+      82.32380952313542,
+      84.8095238097012
+    ],
+    "energy": [
+      1480.0,
+      1525.714285671711,
+      1571.4285714030266,
+      1617.1428571343422,
+      1662.8571428656578
+    ],
+    "traffic": [
+      69.80000000074506,
+      74.02857142686844,
+      78.25714285671711,
+      82.48571428656578,
+      86.71428571268916
+    ]
+  },
+  "processed_data": [
+    {
+      "aqi": 60,
+      "energy": 1200,
+      "timestamp": "2031-01-01T10:00:00",
+      "traffic": 45
+    },
+    {
+      "aqi": 62,
+      "energy": 1250,
+      "timestamp": "2031-01-01T10:05:00",
+      "traffic": 48
+    },
+    {
+      "aqi": 65,
+      "energy": 1300,
+      "timestamp": "2031-01-01T10:10:00",
+      "traffic": 52
+    },
+    {
+      "aqi": 68,
+      "energy": 1350,
+      "timestamp": "2031-01-01T10:15:00",
+      "traffic": 58
+    },
+    {
+      "aqi": 70,
+      "energy": 1400,
+      "timestamp": "2031-01-01T10:20:00",
+      "traffic": 62
+    },
+    {
+      "aqi": 72,
+      "energy": 1420,
+      "timestamp": "2031-01-01T10:25:00",
+      "traffic": 65
+    }
+  ],
+  "summary": {
+    "aqi": {
+      "count": 6,
+      "max": 72.0,
+      "mean": 66.16666666666667,
+      "min": 60.0
+    },
+    "energy": {
+      "count": 6,
+      "max": 1420.0,
+      "mean": 1320.0,
+      "min": 1200.0
+    },
+    "traffic": {
+      "count": 6,
+      "max": 65.0,
+      "mean": 55.0,
+      "min": 45.0
+    }
+  },
+  "timestamp_col": "timestamp",
+  "trends": {
+    "aqi": {
+      "slope": 0.008285714285714285,
+      "trend": "increasing"
+    },
+    "energy": {
+      "slope": 0.1523809523809524,
+      "trend": "increasing"
+    },
+    "traffic": {
+      "slope": 0.014095238095238095,
+      "trend": "increasing"
+    }
+  }
+}
