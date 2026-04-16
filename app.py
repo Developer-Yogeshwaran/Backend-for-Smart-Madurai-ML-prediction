@@ -38,7 +38,12 @@ if not hasattr(pkgutil, 'get_loader'):
             return None
     pkgutil.get_loader = _get_loader
 
-app = Flask(__name__, template_folder='templates', static_folder='static', root_path=os.getcwd())
+# Handle both local and Vercel deployments
+base_dir = os.path.dirname(os.path.abspath(__file__))
+template_folder = os.path.join(base_dir, 'public', 'templates') if os.path.exists(os.path.join(base_dir, 'public', 'templates')) else os.path.join(base_dir, 'templates')
+static_folder = os.path.join(base_dir, 'public', 'static') if os.path.exists(os.path.join(base_dir, 'public', 'static')) else os.path.join(base_dir, 'static')
+
+app = Flask(__name__, template_folder=template_folder, static_folder=static_folder, static_url_path='/static')
 # Configure CORS explicitly to allow preflight and common headers
 CORS(app, resources={r"/*": {"origins": "*"}}, allow_headers='*', methods=['GET', 'POST', 'OPTIONS'])
 
@@ -148,6 +153,15 @@ def compute_trend_and_predict(times_numeric, values, n_predict=5):
 
 @app.route('/')
 def index():
+    return render_template('index.html')
+
+
+@app.route('/<path:path>')
+def serve_static(path):
+    # Serve static files and spa routes
+    if path.startswith('static/'):
+        return send_from_directory(static_folder, path.replace('static/', ''))
+    # For any other route (SPA), serve index.html
     return render_template('index.html')
 
 

@@ -1,0 +1,73 @@
+:root{
+  --bg: linear-gradient(135deg, rgba(10,20,40,1), rgba(2,8,20,1));
+  --glass: rgba(255,255,255,0.04);
+  --accent: linear-gradient(90deg,#6ad1ff,#7b6bff);
+  --accent-solid: #3c82ff;
+  --muted: rgba(255,255,255,0.6);
+  --text: #e9f0ff;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:var(--text);background:radial-gradient(circle at 10% 10%, #071029, #041020);} 
+.app{max-width:1200px;margin:36px auto;padding:24px}
+.glass{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.04);border-radius:14px;padding:18px}
+.card{box-shadow:0 8px 30px rgba(2,6,23,0.65);border-radius:12px;overflow:hidden}
+header{display:flex;justify-content:space-between;align-items:center;padding:18px 24px}
+header h1{margin:0;font-size:20px;letter-spacing:0.2px}
+header .logo{display:flex;gap:12px;align-items:center}
+header .logo .mark{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#4fd1ff,#7b6bff);box-shadow:0 6px 18px rgba(75,100,200,0.18);display:flex;align-items:center;justify-content:center;font-weight:700;color:#04253a}
+.controls{display:flex;gap:12px;align-items:center;margin-bottom:16px}
+.controls input[type=file]{background:transparent;color:var(--text)}
+.controls button{background:var(--accent-solid);border:0;color:white;padding:10px 14px;border-radius:10px;cursor:pointer;box-shadow:0 6px 18px rgba(60,130,255,0.12)}
+.controls .secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:8px 10px;border-radius:8px}
+.error{color:#ffb3b3;margin-left:8px}
+#tableWrap{overflow:auto;max-height:220px}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left}
+.charts{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-top:18px}
+.chart-card{min-height:300px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:10px}
+.metrics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;align-items:start}
+.metric-box{background:transparent;padding:6px;border-radius:8px;display:flex;flex-direction:column}
+.metric-box canvas{width:100%;height:140px;max-height:160px;border-radius:8px}
+.metric-controls{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+.metric-box h5{margin:0 0 6px 0;font-size:13px}
+
+/* Compact view adjustments */
+body.compact .app{max-width:900px;padding:8px}
+body.compact header{padding:12px}
+body.compact .glass{padding:10px;border-radius:8px}
+body.compact .card{box-shadow:none}
+body.compact .charts{gap:10px}
+body.compact .metrics-grid{grid-template-columns:repeat(3,1fr);gap:8px}
+body.compact .metric-box h5{font-size:12px}
+body.compact canvas{max-height:120px!important;height:120px!important}
+/* keep predictions visible in compact mode and style it for small screens */
+body.compact #tableWrap, body.compact #report{display:none}
+body.compact #predictions{display:block;font-size:12px;max-height:160px;overflow:auto}
+.pred-box{margin-bottom:8px;padding:6px;border-radius:8px;background:rgba(255,255,255,0.02)}
+body.compact #tableWrap table th, body.compact #tableWrap table td{padding:4px 6px;font-size:12px}
+body.compact .card-stat{min-width:120px;padding:8px;font-size:12px}
+body.compact .report-charts{gap:8px}
+body.compact .report-chart h4{font-size:13px}
+
+#predictions{font-size:14px}
+.summary-grid{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+.card-stat{background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:12px;border-radius:12px;min-width:160px;flex:1 1 160px;border-left:4px solid rgba(255,255,255,0.02)}
+.card-stat:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(10,20,40,0.6)}
+.card-stat h5{margin:0 0 6px 0;font-size:13px}
+.card-stat .val{font-size:18px;font-weight:700}
+.report-header{display:flex;justify-content:space-between;align-items:center}
+.report-actions button{background:linear-gradient(90deg,#3c82ff,#7b6bff);color:white;border:0;padding:8px 12px;border-radius:10px;margin-left:8px;cursor:pointer;box-shadow:0 8px 20px rgba(60,130,255,0.12)}
+.report-charts{display:flex;gap:16px;margin-top:12px}
+.report-chart{flex:1}
+.loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg, rgba(2,6,23,0.7), rgba(2,6,23,0.85));color:var(--text);z-index:120}
+.hidden{display:none}
+.spinner{width:56px;height:56px;border-radius:50%;border:6px solid rgba(255,255,255,0.08);border-top-color:#6ad1ff;animation:spin 1s linear infinite;box-shadow:0 8px 30px rgba(75,100,200,0.12)}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media (max-width:800px){
+  .charts{grid-template-columns:1fr}
+  header{flex-direction:column;align-items:flex-start;gap:8px}
+  .controls{flex-direction:column;align-items:flex-start}
+  .report-charts{flex-direction:column}
+  .metrics-grid{grid-template-columns:1fr}
+}
