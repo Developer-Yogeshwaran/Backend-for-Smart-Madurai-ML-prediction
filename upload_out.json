@@ -1,0 +1,103 @@
+{
+  "location_col": "location",
+  "metrics": [
+    "traffic",
+    "aqi",
+    "energy"
+  ],
+  "predictions": {
+    "aqi": [
+      59.66666666697711,
+      59.66666666697711,
+      59.66666666697711,
+      59.66666666697711,
+      59.66666666697711
+    ],
+    "energy": [
+      213.33333333209157,
+      213.33333333209157,
+      213.33333333209157,
+      213.33333333209157,
+      213.33333333209157
+    ],
+    "traffic": [
+      138.33333333209157,
+      138.33333333209157,
+      138.33333333209157,
+      138.33333333209157,
+      138.33333333209157
+    ]
+  },
+  "processed_data": [
+    {
+      "aqi": 55,
+      "energy": 200,
+      "location": "ZoneA",
+      "time": "2026-04-16T10:00:00",
+      "traffic": 120
+    },
+    {
+      "aqi": 58,
+      "energy": 210,
+      "location": "ZoneA",
+      "time": "2026-04-16T10:05:00",
+      "traffic": 130
+    },
+    {
+      "aqi": 57,
+      "energy": 205,
+      "location": "ZoneA",
+      "time": "2026-04-16T10:10:00",
+      "traffic": 125
+    },
+    {
+      "aqi": 60,
+      "energy": 215,
+      "location": "ZoneA",
+      "time": "2026-04-16T10:15:00",
+      "traffic": 140
+    },
+    {
+      "aqi": 62,
+      "energy": 220,
+      "location": "ZoneA",
+      "time": "2026-04-16T10:20:00",
+      "traffic": 150
+    }
+  ],
+  "summary": {
+    "aqi": {
+      "count": 5,
+      "max": 62.0,
+      "mean": 58.4,
+      "min": 55.0
+    },
+    "energy": {
+      "count": 5,
+      "max": 220.0,
+      "mean": 210.0,
+      "min": 200.0
+    },
+    "traffic": {
+      "count": 5,
+      "max": 150.0,
+      "mean": 133.0,
+      "min": 120.0
+    }
+  },
+  "timestamp_col": "time",
+  "trends": {
+    "aqi": {
+      "slope": 3.166666666666667,
+      "trend": "increasing"
+    },
+    "energy": {
+      "slope": 8.333333333333334,
+      "trend": "increasing"
+    },
+    "traffic": {
+      "slope": 13.333333333333334,
+      "trend": "increasing"
+    }
+  }
+}

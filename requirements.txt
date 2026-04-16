@@ -1,0 +1,4 @@
+Flask==2.3.2
+flask-cors==4.0.0
+# Optional: install numpy, pandas, scikit-learn for improved performance/ML
+# pip install numpy pandas scikit-learn
